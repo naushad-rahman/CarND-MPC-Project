@@ -2,10 +2,51 @@
 Self-Driving Car Engineer Nanodegree Program
 
 ---
+[//]: # (Image References)
+[image1]: ./output_images/CTEandSTREERINGANGLE.png
+
+
+
 
 # Project Write-Up
 
-The Model Predicitive Controller was successfully implemented and tested for the latency of 100millisecond . 
+The Model Predicitive Controller was successfully implemented and tested for the latency of 100millisecond and 40 mph reference speed  . 
+
+## Model and pre-processing
+
+Kinematic model as described in the class is used as a Car Model . 
+As suggested Waypoints co-ordinate system from global  to local  using function name `globalTolocal_Transformation' in 'MPC.h'
+
+## Polynomial fitting 
+
+`ployfit` function is used for fitting polynominal in `main.cpp` file . 
+`ployeval_cppad` and `ployeval_slope_cppad` is used for evaluating ploynominal and its slope .
+
+## Parameter Selection 
+
+### TimeSelection 
+
+Time step selection is one of most curcial selection parameter , If we choose samller step it take alot of time step to solve it where as if we take higher time step it will never converge , So optimal time step I found after experiment is 0.1 sec .
+
+### Delta and Acceleration 
+
+So, Optimal value of Delta and Acceleration will make control signal to take smooth tracking . 
+Delta_parameter = 500
+Acceleration    = 100
+
+
+### CTE AND STEERING ANGLE PLOT 
+
+![alt text][image1]
+Here ,Matlib plot of CTE And Streering Angle . It work very good for straing line but oscillating for the curve . 
+
+
+
+
+
+
+
+
 
 
 
