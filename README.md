@@ -57,11 +57,6 @@ Here ,Matlib plot of CTE And Streering Angle . It work very good for straing lin
   
   double dt = config_.p_lag;
   
-  double delta = last_control_[0];
-  
-  double a = last_control_[1];
-  
-
   x = x + v*cos(psi)*dt;
   
   y = y + v*sin(psi)*dt;
