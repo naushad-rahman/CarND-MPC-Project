@@ -4,6 +4,7 @@ Self-Driving Car Engineer Nanodegree Program
 ---
 [//]: # (Image References)
 [image1]: ./output_images/CTEandSTREERINGANGLE.png
+[image2]: ./output_images/eqns.png
 
 
 
@@ -15,6 +16,12 @@ The Model Predicitive Controller was successfully implemented and tested for the
 ## Model and pre-processing
 
 Kinematic model as described in the class is used as a Car Model . 
+![alt text][image2]
+Model takes vechicle's X,Y coordinates , Vechicle speed , Orientaion .
+
+Last Two equation Is used for calculating  steering angle (delta) and accleration . This is even output of control parameter . 
+We Calculate x(t+1) , y(t+1) , psi(t+1) and v(t+1) such that CTE and epsi is very smaller .
+
 As suggested Waypoints co-ordinate system from global  to local  using function name `globalTolocal_Transformation' in 'MPC.h'
 
 ## Polynomial fitting 
