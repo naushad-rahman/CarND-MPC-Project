@@ -3,6 +3,7 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <tuple>
 #include <vector>
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
@@ -61,14 +62,26 @@ double polyeval(Eigen::VectorXd coeffs, double x) {
   return result;
 }
 
+// Evaluate a polynomial slope.
+double polyeval_slope(Eigen::VectorXd coeffs, double x) {
+  double result = 0.0;
+  for (int i = 1; i < coeffs.size(); i++) {
+    result += coeffs[i] * pow(x, i-1);
+  }
+  return result;
+}
+
 // Fit a polynomial.
 // Adapted from
 // https://github.com/JuliaMath/Polynomials.jl/blob/master/src/Polynomials.jl#L676-L716
-Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
+Eigen::VectorXd polyfit(vector<double>& xvals, vector<double>& yvals,
                         int order) {
   assert(xvals.size() == yvals.size());
   assert(order >= 1 && order <= xvals.size() - 1);
   Eigen::MatrixXd A(xvals.size(), order + 1);
+
+  // Convert to Eigen format for math
+  Eigen::VectorXd yvals_ = Eigen::VectorXd::Map(yvals.data(), yvals.size());
 
   for (int i = 0; i < xvals.size(); i++) {
     A(i, 0) = 1.0;
@@ -76,19 +89,19 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
 
   for (int j = 0; j < xvals.size(); j++) {
     for (int i = 0; i < order; i++) {
-      A(j, i + 1) = A(j, i) * xvals(j);
+      A(j, i + 1) = A(j, i) * xvals[j];
     }
   }
 
   auto Q = A.householderQr();
-  auto result = Q.solve(yvals);
+  auto result = Q.solve(yvals_);
   return result;
 }
 
 
 MPC_configuration load_configuration ()
 {
-  Configuration cfg;
+  MPC_configuration cfg;
   cfg.v_max = 60*.447;
   cfg.ref_v = cfg.v_max;
   cfg.w_cte = 2;
@@ -114,7 +127,7 @@ int main() {
 
   //Loading the MPC configuration 
 
-  MPC_configuration cfg = load_config();
+  MPC_configuration cfg = load_configuration();
   // MPC is initialized here!
   MPC mpc (cfg);
 
@@ -154,9 +167,9 @@ int main() {
           // Converting Waypoint from global co-ordinate system to local co-ordinate system 
           vector <double> trans_ptsx,trans_ptsy ;
 
-          std::tie(trans_ptsx, trans_ptsy) = transform_points(ptsx, ptsy, {px, py, psi});
+          std::tie(trans_ptsx, trans_ptsy) = transforming_waypoints(ptsx, ptsy, {px, py, psi});
 
-          auto coeffs = polyfit(ptsx_rel, ptsy_rel, 3);
+          auto coeffs = polyfit(trans_ptsx, trans_ptsy, 3);
 
           // The cross track error is calculated by evaluating at polynomial at x, f(x)
           // and subtracting y.
@@ -176,30 +189,37 @@ int main() {
           double steer_value;
           double throttle_value;
 
-          json msgJson;
+             //Display the MPC predicted trajectory
+          vector<double> mpc_x_vals;
+          vector<double> mpc_y_vals;
 
-           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
-          // the points in the simulator are connected by a Green line
+         
 
-          msgJson["mpc_x"] = mpc_x_vals;
-          msgJson["mpc_y"] = mpc_y_vals;
+        
 
 
           std::tie(steer_value, throttle_value, mpc_x_vals, mpc_y_vals) = mpc_output;
 
-
+           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
           msgJson["steering_angle"] = -steer_value/deg2rad(25);
           msgJson["throttle"] = throttle_value;
+
+
+             //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
+          // the points in the simulator are connected by a Green line
+
+          msgJson["mpc_x"] = mpc_x_vals;
+          msgJson["mpc_y"] = mpc_y_vals;
 
           
 
          
 
           //Display the waypoints/reference line
-          vector<double> next_x_vals = ptsx_rel.data()+1, ptsx_rel.data() + ptsx_rel.size();
-          vector<double> next_y_vals(ptsy_rel.data()+1, ptsy_rel.data() + ptsy_rel.size());
+          vector<double> next_x_vals(trans_ptsx.data()+1, trans_ptsx.data() + trans_ptsx.size());
+          vector<double> next_y_vals(trans_ptsy.data()+1, trans_ptsy.data() + trans_ptsy.size());
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line

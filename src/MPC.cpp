@@ -19,16 +19,34 @@ using CppAD::AD;
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
 
+// Will be filled in by the MPC class
+size_t x_start;
+size_t y_start;
+size_t psi_start;
+size_t v_start;
+size_t cte_start;
+size_t epsi_start;
+size_t delta_start;
+size_t a_start;
+
 class FG_eval {
 
  private :
  // timestep length and duration Variable 
- size_t N_  ; 
- double dt_ ;
+  int N_;
+  double dt_ ;
+  MPC_configuration& config_;
  public:
   // Fitted polynomial coefficients
-  Eigen::VectorXd coeffs;
-  FG_eval(Eigen::VectorXd coeffs) { this->coeffs = coeffs; }
+  Eigen::VectorXd coeffs_;;
+  // Coefficients of the fitted polynomial.
+  FG_eval(Eigen::VectorXd& coeffs, MPC_configuration& config) : config_(config), coeffs_(coeffs){
+    coeffs_ = coeffs;
+
+    N_ = config.solver_N;
+    dt_ = config.solver_dt;
+  }
+
 
   typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
   void operator()(ADvector& fg, const ADvector& vars) {
@@ -211,19 +229,19 @@ void MPC::Init(Eigen::VectorXd x0)
   cout<<"Initialization complete."<<endl;
   is_initialized_ = true;
 }
-vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
+MPC_OUTPUT MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
 if(!is_initialized_)
   {
     Init(state);
   }
 
-double x = x0[0];
-  double y = x0[1];
-  double psi = x0[2];
-  double v = x0[3];
-  double cte = x0[4];
-  double epsi = x0[5];
+double x = state[0];
+  double y = state[1];
+  double psi = state[2];
+  double v = state[3];
+  double cte = state[4];
+  double epsi = state[5];
 
   // Apply Lag compensation
   double dt = config_.p_lag;

@@ -89,7 +89,7 @@ struct MPC_configuration
 
 	double p_lag;
 	double p_steering_limit;
-}
+};
 
 class MPC {
  public:
@@ -101,12 +101,27 @@ class MPC {
 
   // Solve the model given an initial state and polynomial coefficients.
   // Return the first actuatotions.
-  vector<double> Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs);
+  MPC_OUTPUT Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs);
 
   private :
-  Configuration& config_;
+  MPC_configuration& config_;
   bool is_initialized_ = false;
 
+  CppAD::ipopt::solve_result<Dvector> last_sol_;
+  int time_ctr = -1;
+  int N_;
+  double dt_;
+
+  Dvector last_control_;
+
+  // ipopt options
+  std::string options_;
+
+  Dvector vars_;
+  Dvector constraints_lowerbound_;
+  Dvector constraints_upperbound_;
+  Dvector vars_lowerbound_;
+  Dvector vars_upperbound_;
 
 };
 
