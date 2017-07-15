@@ -13,6 +13,8 @@ Self-Driving Car Engineer Nanodegree Program
 
 The Model Predicitive Controller was successfully implemented and tested for the latency of 100millisecond and 40 mph reference speed  . 
 
+Youtube Link [https://youtu.be/-_USSpvS7iU]
+
 ## Model and pre-processing
 
 Kinematic model as described in the class is used as a Car Model . 
@@ -49,8 +51,35 @@ Here ,Matlib plot of CTE And Streering Angle . It work very good for straing lin
 
 
 
+## Handling of Latency of 100 milisecond 
 
+```cpp
+  
+  double dt = config_.p_lag;
+  
+  double delta = last_control_[0];
+  
+  double a = last_control_[1];
+  
 
+  x = x + v*cos(psi)*dt;
+  
+  y = y + v*sin(psi)*dt;
+  
+  psi = psi + v*delta/Lf *dt;
+  
+  v = v + a*dt;
+  
+  cte = cte + (v * sin(epsi) * dt);
+  
+  epsi = epsi + v * delta / Lf * dt;
+  
+  ```
+  
+  Above code is used for compensating Lag and  it is done in `MPC.cpp` 247 - 256 Line number .  
+  
+  
+  
 
 
 
