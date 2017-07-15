@@ -9,9 +9,10 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "MPC.h"
 #include "json.hpp"
-
+#include "matplotlibcpp.h"
 // for convenience
 using json = nlohmann::json;
+namespace plt = matplotlibcpp;
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
@@ -123,7 +124,11 @@ MPC_configuration load_configuration ()
   return cfg;
 }
 
-
+ bool isDisconnected=false ;
+std::vector<double> cte_vals;
+std::vector<double>  epsi_vals;
+std::vector<double> steer_vals;
+std::vector<double> throotel_vals; 
 int main() {
   uWS::Hub h;
 
@@ -132,6 +137,7 @@ int main() {
   MPC_configuration cfg = load_configuration();
   // MPC is initialized here!
   MPC mpc (cfg);
+   
 
   h.onMessage([&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
@@ -215,7 +221,11 @@ int main() {
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
 
-          
+	// for Plotting Data 
+ 	cte_vals.push_back(cte);
+	epsi_vals.push_back(epsi);;
+	steer_vals.push_back(-steer_value/0.436332);;
+	throotel_vals.push_back(throttle_value);;
 
          
 
@@ -265,13 +275,34 @@ int main() {
       res->end(nullptr, 0);
     }
   });
-
+ 
   h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
     std::cout << "Connected!!!" << std::endl;
+	
   });
 
   h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
                          char *message, size_t length) {
+   if (!isDisconnected)
+	{
+		std::cout << "Disconnected2" << std::endl;
+		isDisconnected = true ;
+ 		plt::subplot(2, 1, 1);
+  		plt::title("Cross Talk Error");
+		plt::plot(cte_vals);
+
+	
+
+
+		plt::subplot(2, 1, 2);
+  		plt::title("Steering Angle");
+		plt::plot(steer_vals);
+
+		
+
+ 		plt::show();
+	}
+	
     ws.close();
     std::cout << "Disconnected" << std::endl;
   });
