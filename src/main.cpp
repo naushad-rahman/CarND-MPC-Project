@@ -32,6 +32,26 @@ string hasData(string s) {
   return "";
 }
 
+
+// Converting from gloabl to local co-ordinate system 
+tuple <vector<double>, vector<double>>
+transforming_waypoints(vector<double> ptsx , vector<double> ptsy, vector<double> vehicle){
+
+  vector<double> out_x;
+  vector<double> out_y;
+
+  double x,y ;
+
+ for ( auto i =0 ; i < ptsx.size(); i ++)
+ {
+    std::tie(x, y) = globalTolocal_Transformation(std::make_tuple(ptsx[i], ptsy[i]), vehicle);
+    out_x.push_back(x);
+    out_y.push_back(y);
+ }
+ return std::make_tuple(out_x, out_y);
+}
+
+
 // Evaluate a polynomial.
 double polyeval(Eigen::VectorXd coeffs, double x) {
   double result = 0.0;
@@ -65,11 +85,38 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
   return result;
 }
 
+
+MPC_configuration load_configuration ()
+{
+  Configuration cfg;
+  cfg.v_max = 60*.447;
+  cfg.ref_v = cfg.v_max;
+  cfg.w_cte = 2;
+  cfg.w_epsi = 20;
+  cfg.w_v = 2;
+
+  cfg.w_delta =15000;
+  cfg.w_a = 1.0;
+  cfg.w_deltadot = 10.0;
+  cfg.w_adot = 1;
+
+  cfg.solver_N = 15;
+  cfg.solver_dt = 0.01;
+  cfg.solver_timeout = 0.5;
+  cfg.p_lag = 0.1;//100 milisecond
+  cfg.p_steering_limit = 20*M_PI/180;
+  return cfg;
+}
+
+
 int main() {
   uWS::Hub h;
 
+  //Loading the MPC configuration 
+
+  MPC_configuration cfg = load_config();
   // MPC is initialized here!
-  MPC mpc;
+  MPC mpc (cfg);
 
   h.onMessage([&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
@@ -92,34 +139,67 @@ int main() {
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
 
+          // Converting from MPH to m/sec
+          v = v*0.44704 ;
+
+
+
           /*
           * TODO: Calculate steering angle and throttle using MPC.
           *
           * Both are in between [-1, 1].
           *
           */
+
+          // Converting Waypoint from global co-ordinate system to local co-ordinate system 
+          vector <double> trans_ptsx,trans_ptsy ;
+
+          std::tie(trans_ptsx, trans_ptsy) = transform_points(ptsx, ptsy, {px, py, psi});
+
+          auto coeffs = polyfit(ptsx_rel, ptsy_rel, 3);
+
+          // The cross track error is calculated by evaluating at polynomial at x, f(x)
+          // and subtracting y.
+          double cte = polyeval(coeffs, 0.0) - 0;
+          // Due to the sign starting at 0, the orientation error is -f'(x).
+          // derivative of coeffs[0] + coeffs[1] * x -> coeffs[1]
+          double epsi = -atan(polyeval_slope(coeffs, 0.0));
+          /*
+          * Calculate steeering angle and throttle using MPC.
+          */
+          Eigen::VectorXd state(6);
+          state << 0, 0, 0, v, cte, epsi;
+
+          auto mpc_output = mpc.Solve(state, coeffs);
+
+
           double steer_value;
           double throttle_value;
 
           json msgJson;
-          // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
-          // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = steer_value;
-          msgJson["throttle"] = throttle_value;
 
-          //Display the MPC predicted trajectory 
-          vector<double> mpc_x_vals;
-          vector<double> mpc_y_vals;
-
-          //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
+           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
 
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
 
+
+          std::tie(steer_value, throttle_value, mpc_x_vals, mpc_y_vals) = mpc_output;
+
+
+          // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
+          // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
+          msgJson["steering_angle"] = -steer_value/deg2rad(25);
+          msgJson["throttle"] = throttle_value;
+
+          
+
+         
+
           //Display the waypoints/reference line
-          vector<double> next_x_vals;
-          vector<double> next_y_vals;
+          vector<double> next_x_vals = ptsx_rel.data()+1, ptsx_rel.data() + ptsx_rel.size();
+          vector<double> next_y_vals(ptsy_rel.data()+1, ptsy_rel.data() + ptsy_rel.size());
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
