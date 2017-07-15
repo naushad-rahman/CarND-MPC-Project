@@ -102,19 +102,21 @@ Eigen::VectorXd polyfit(vector<double>& xvals, vector<double>& yvals,
 MPC_configuration load_configuration ()
 {
   MPC_configuration cfg;
-  cfg.v_max = 60*.447;
+  cfg.v_max = 40*.447;
   cfg.ref_v = cfg.v_max;
   cfg.w_cte = 2;
-  cfg.w_epsi = 20;
+  cfg.w_epsi = 20.0;
   cfg.w_v = 2;
 
-  cfg.w_delta =15000;
-  cfg.w_a = 1.0;
+  cfg.w_delta =500.0;
+  cfg.w_a = 100.0;
+
   cfg.w_deltadot = 10.0;
   cfg.w_adot = 1;
 
   cfg.solver_N = 15;
-  cfg.solver_dt = 0.01;
+  cfg.solver_dt = 0.1;
+
   cfg.solver_timeout = 0.5;
   cfg.p_lag = 0.1;//100 milisecond
   cfg.p_steering_limit = 20*M_PI/180;
@@ -203,7 +205,7 @@ int main() {
            json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = -steer_value/deg2rad(25);
+          msgJson["steering_angle"] = -steer_value/0.436332;;
           msgJson["throttle"] = throttle_value;
 
 
@@ -229,14 +231,14 @@ int main() {
 
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-          std::cout << msg << std::endl;
+         // std::cout << msg << std::endl;
           // Latency
           // The purpose is to mimic real driving conditions where
           // the car does actuate the commands instantly.
           //
           // Feel free to play around with this value but should be to drive
           // around the track with 100ms latency.
-          //
+          //r
           // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
           // SUBMITTING.
           this_thread::sleep_for(chrono::milliseconds(100));
